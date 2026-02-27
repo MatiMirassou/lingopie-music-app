@@ -1,0 +1,32 @@
+{
+  "jobs": [
+    {
+      "id": "68127beb-cba2-4c5b-bbd7-b602998c4ba1",
+      "youtube_url": "https://www.youtube.com/watch?v=oBofuVYDoG4&list=RDoBofuVYDoG4",
+      "language": "Spanish",
+      "status": "failed",
+      "current_step": "Downloading audio",
+      "step_number": 1,
+      "total_steps": 7,
+      "error": "Request failed with status code 403",
+      "output_url": null,
+      "metadata": null,
+      "created_at": "2026-02-27T14:51:21.466Z",
+      "updated_at": "2026-02-27T14:51:22.165Z"
+    },
+    {
+      "id": "f0281bb0-a92c-4a9c-a1c6-098f92996dd0",
+      "youtube_url": "https://www.youtube.com/watch?v=oBofuVYDoG4&list=RDoBofuVYDoG4",
+      "language": "Spanish",
+      "status": "failed",
+      "current_step": "Correcting transcription",
+      "step_number": 3,
+      "total_steps": 7,
+      "error": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "output_url": null,
+      "metadata": null,
+      "created_at": "2026-02-27T14:55:19.043Z",
+      "updated_at": "2026-02-27T14:55:48.005Z"
+    }
+  ]
+}

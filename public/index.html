@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lingopie Music Pipeline</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white min-h-screen font-sans">
+  <div class="max-w-2xl mx-auto px-4 py-12">
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <h1 class="text-4xl font-bold text-pink-400 mb-2">🎵 Lingopie Music</h1>
+      <p class="text-gray-400">Paste a YouTube music video URL and get a bilingual Lingopie video</p>
+    </div>
+
+    <!-- Form -->
+    <form id="jobForm" class="bg-gray-900 rounded-2xl p-8 shadow-xl mb-8 space-y-5">
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-1">YouTube URL</label>
+        <input
+          id="youtubeUrl"
+          type="url"
+          placeholder="https://youtube.com/watch?v=..."
+          required
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-1">Song Language</label>
+        <select id="language" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500">
+          <option>Spanish</option>
+          <option>French</option>
+          <option>Portuguese</option>
+          <option>Italian</option>
+          <option>German</option>
+          <option>Korean</option>
+          <option>Japanese</option>
+          <option>Chinese</option>
+          <option>Arabic</option>
+          <option>English</option>
+        </select>
+      </div>
+
+      <button type="submit" class="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 rounded-lg transition">
+        Generate Video
+      </button>
+    </form>
+
+    <!-- Progress Card -->
+    <div id="progressCard" class="hidden bg-gray-900 rounded-2xl p-8 shadow-xl mb-8">
+      <h2 class="text-lg font-semibold mb-5">Processing...</h2>
+
+      <div class="space-y-3 mb-6" id="stepList">
+        <!-- Steps injected by JS -->
+      </div>
+
+      <div id="progressBar" class="w-full bg-gray-700 rounded-full h-2">
+        <div id="progressFill" class="bg-pink-500 h-2 rounded-full transition-all" style="width:0%"></div>
+      </div>
+
+      <p id="statusMsg" class="text-sm text-gray-400 mt-3 text-center"></p>
+
+      <div id="downloadSection" class="hidden mt-6 text-center">
+        <a id="downloadLink" href="#" target="_blank"
+          class="inline-block bg-green-500 hover:bg-green-600 text-white font-bold px-8 py-3 rounded-lg transition">
+          ▶ Watch / Download Video
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Jobs -->
+    <div id="recentJobs" class="bg-gray-900 rounded-2xl p-6 shadow-xl">
+      <h2 class="font-semibold text-gray-300 mb-4">Recent Jobs</h2>
+      <div id="jobsList" class="space-y-2 text-sm text-gray-400">Loading...</div>
+    </div>
+
+  </div>
+
+  <script>
+    const STEPS = [
+      'Downloading audio',
+      'Transcribing',
+      'Correcting transcription',
+      'Translating to English',
+      'Generating thumbnail',
+      'Rendering video',
+      'Uploading',
+    ]
+
+    async function loadJobs() {
+      const res = await fetch('/api/jobs')
+      const jobs = await res.json()
+      const el = document.getElementById('jobsList')
+      if (!jobs.length) { el.textContent = 'No jobs yet.'; return }
+      el.innerHTML = jobs.map(j => `
+        <div class="flex justify-between items-center py-1 border-b border-gray-800">
+          <span class="truncate max-w-xs text-gray-300">${j.metadata ? JSON.parse(j.metadata).title || j.youtube_url : j.youtube_url}</span>
+          <span class="ml-3 px-2 py-0.5 rounded text-xs font-medium ${statusColor(j.status)}">${j.status}</span>
+        </div>
+      `).join('')
+    }
+
+    function statusColor(s) {
+      return { queued: 'bg-gray-700', running: 'bg-blue-600', done: 'bg-green-600', failed: 'bg-red-600' }[s] || 'bg-gray-700'
+    }
+
+    function renderSteps(currentStep) {
+      return STEPS.map((s, i) => {
+        const num = i + 1
+        let icon = '⬜'
+        if (num < currentStep) icon = '✅'
+        else if (num === currentStep) icon = '🔄'
+        return `<div class="flex items-center gap-3 text-sm ${num === currentStep ? 'text-white font-medium' : num < currentStep ? 'text-gray-400' : 'text-gray-600'}">
+          <span>${icon}</span><span>${num}. ${s}</span>
+        </div>`
+      }).join('')
+    }
+
+    document.getElementById('jobForm').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const url = document.getElementById('youtubeUrl').value
+      const lang = document.getElementById('language').value
+
+      const res = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ youtube_url: url, language: lang }),
+      })
+      const { jobId } = await res.json()
+
+      document.getElementById('progressCard').classList.remove('hidden')
+      document.getElementById('downloadSection').classList.add('hidden')
+      document.getElementById('progressFill').style.width = '0%'
+
+      // SSE progress
+      const es = new EventSource(`/api/jobs/${jobId}/progress`)
+      es.onmessage = ({ data }) => {
+        const job = JSON.parse(data)
+        const pct = Math.round((job.step_number / 7) * 100)
+
+        document.getElementById('stepList').innerHTML = renderSteps(job.step_number)
+        document.getElementById('progressFill').style.width = pct + '%'
+        document.getElementById('statusMsg').textContent = job.current_step || ''
+
+        if (job.status === 'done') {
+          es.close()
+          document.getElementById('progressFill').style.width = '100%'
+          document.getElementById('statusMsg').textContent = '✅ Done!'
+          document.getElementById('stepList').innerHTML = renderSteps(8)
+          if (job.output_url) {
+            document.getElementById('downloadLink').href = job.output_url
+            document.getElementById('downloadSection').classList.remove('hidden')
+          }
+          loadJobs()
+        }
+
+        if (job.status === 'failed') {
+          es.close()
+          document.getElementById('statusMsg').textContent = '❌ Failed: ' + job.error
+          loadJobs()
+        }
+      }
+    })
+
+    loadJobs()
+  </script>
+</body>
+</html>
