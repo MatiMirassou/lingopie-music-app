@@ -11,7 +11,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 export async function correctTranscription(rawSrt, title, language) {
   const lyrics = await fetchLyrics(title)
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }, { apiVersion: 'v1beta' })
 
   const prompt = `You are a subtitle correction expert for ${language} music.
 
@@ -38,7 +38,17 @@ Output the corrected SRT:`
   const result = await model.generateContent(prompt)
   const correctedSrt = result.response.text().replace(/```[a-z]*\n?/gi, '').trim()
 
+  if (!isValidSrt(correctedSrt)) {
+    console.warn('[03-correct] AI output failed SRT validation, falling back to raw Whisper SRT')
+    return rawSrt
+  }
+
   return correctedSrt
+}
+
+function isValidSrt(text) {
+  // Basic check: SRT must contain at least one timestamp line (00:00:00,000 --> 00:00:00,000)
+  return /\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(text)
 }
 
 async function fetchLyrics(title) {

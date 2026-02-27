@@ -13,7 +13,11 @@ const LANGUAGE_CODES = {
 }
 
 export async function transcribe(mp3Path, language) {
-  const langCode = LANGUAGE_CODES[language] || 'es'
+  const langCode = LANGUAGE_CODES[language]
+  if (!langCode) {
+    const supported = Object.keys(LANGUAGE_CODES).join(', ')
+    throw new Error(`Unsupported language "${language}". Supported: ${supported}`)
+  }
 
   const transcription = await openai.audio.transcriptions.create({
     file: fs.createReadStream(mp3Path),

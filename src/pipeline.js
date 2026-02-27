@@ -1,7 +1,9 @@
 /**
  * Pipeline orchestrator — runs all 7 steps, updates DB after each
  */
-import { join } from 'path'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+import { mkdirSync } from 'fs'
 import db from './db.js'
 import { downloadAudio } from './steps/01-download.js'
 import { transcribe } from './steps/02-transcribe.js'
@@ -11,8 +13,10 @@ import { generateThumbnail } from './steps/05-thumbnail.js'
 import { renderVideo } from './steps/06-render.js'
 import { uploadVideo } from './steps/07-upload.js'
 
-const TMP_DIR = process.env.TMP_DIR || './tmp'
-const OUTPUT_DIR = process.env.OUTPUT_DIR || './outputs'
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const PROJECT_ROOT = join(__dirname, '..')
+const TMP_DIR = process.env.TMP_DIR || join(PROJECT_ROOT, 'tmp')
+const OUTPUT_DIR = process.env.OUTPUT_DIR || join(PROJECT_ROOT, 'outputs')
 
 const STEPS = [
   'Downloading audio',
@@ -29,8 +33,8 @@ export async function runPipeline(jobId) {
   if (!job) throw new Error(`Job ${jobId} not found`)
 
   const tmpDir = join(TMP_DIR, jobId)
-  const { mkdirSync } = await import('fs')
   mkdirSync(tmpDir, { recursive: true })
+  mkdirSync(OUTPUT_DIR, { recursive: true })
 
   let mp3Path, metadata, rawSrt, correctedSrt, translatedSrt
 

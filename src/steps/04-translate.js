@@ -6,7 +6,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 export async function translateSrt(correctedSrt, language) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }, { apiVersion: 'v1beta' })
 
   const prompt = `You are a professional subtitle translator. Translate the following SRT from ${language} to English.
 
@@ -24,5 +24,13 @@ Output the English SRT:`
   const result = await model.generateContent(prompt)
   const translatedSrt = result.response.text().replace(/```[a-z]*\n?/gi, '').trim()
 
+  if (!isValidSrt(translatedSrt)) {
+    throw new Error('Translation step produced invalid SRT output')
+  }
+
   return translatedSrt
+}
+
+function isValidSrt(text) {
+  return /\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(text)
 }

@@ -28,7 +28,6 @@ export async function downloadAudio(jobId, youtubeUrl, tmpDir) {
   ], { timeout: 120000 })
 
   // yt-dlp may output as .mp3 directly or need renaming
-  const possiblePath = mp3Path.replace('.mp3', '.mp3')
   if (!fs.existsSync(mp3Path)) {
     // Try common alternative output name
     const files = fs.readdirSync(tmpDir).filter(f => f.startsWith(jobId))
@@ -46,11 +45,14 @@ export async function downloadAudio(jobId, youtubeUrl, tmpDir) {
 
   const meta = JSON.parse(stdout)
 
+  const duration = Math.round(meta.duration || 0)
+  if (duration <= 0) throw new Error(`Invalid video duration (${meta.duration}). Live streams are not supported.`)
+
   return {
     mp3Path,
     videoId: meta.id,
     title: meta.title,
-    duration: Math.round(meta.duration),
+    duration,
   }
 }
 
