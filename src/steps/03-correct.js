@@ -11,7 +11,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 export async function correctTranscription(rawSrt, title, language) {
   const lyrics = await fetchLyrics(title)
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }, { apiVersion: 'v1beta' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' })
 
   const prompt = `You are a subtitle correction expert for ${language} music.
 

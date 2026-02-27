@@ -6,7 +6,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 export async function translateSrt(correctedSrt, language) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }, { apiVersion: 'v1beta' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' })
 
   const prompt = `You are a professional subtitle translator. Translate the following SRT from ${language} to English.
 
