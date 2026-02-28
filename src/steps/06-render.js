@@ -38,9 +38,9 @@ function renderBody(mp3Path, langSrtPath, enSrtPath, duration, outputPath) {
       .inputOptions(['-loop 1'])
       .input(mp3Path)
       .complexFilter([
-        // Two subtitle tracks — both centered vertically, Spanish above English
-        `[0:v]subtitles='${escapeFilterPath(langSrtPath)}':force_style='FontSize=36,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=1,Alignment=8,MarginV=450,WrapStyle=2'[v1]`,
-        `[v1]subtitles='${escapeFilterPath(enSrtPath)}':force_style='FontSize=28,PrimaryColour=&H00FFFF,OutlineColour=&H000000,Outline=1,Alignment=8,MarginV=530,WrapStyle=2'[vout]`,
+        // Two subtitle tracks — both bottom-center aligned, pushed up with MarginV
+        `[0:v]subtitles='${escapeFilterPath(langSrtPath)}':force_style='FontSize=28,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginL=0,MarginR=0,MarginV=480,WrapStyle=0'[v1]`,
+        `[v1]subtitles='${escapeFilterPath(enSrtPath)}':force_style='FontSize=28,PrimaryColour=&H00FFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginL=0,MarginR=0,MarginV=400,WrapStyle=0'[vout]`,
       ])
       .outputOptions([
         '-map [vout]',
