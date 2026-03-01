@@ -1,12 +1,16 @@
 /**
  * Step 6: Render final video with fluent-ffmpeg
  * Pipeline:
- *   intro.mp4 → [BG image + MP3 + lang subtitles + EN subtitles] → concat → final.mp4
+ *   intro.mp4 → [BG image + MP3 + ASS subtitles] → concat → final.mp4
+ *
+ * Subtitles are converted from SRT → a single ASS file with two styles
+ * (Lang + En) and rendered in one pass via the `ass=` filter.
  */
 import ffmpeg from 'fluent-ffmpeg'
 import fs from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { buildDualAss } from '../utils/ass.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = join(__dirname, '../..')
@@ -14,15 +18,20 @@ const BG_IMAGE = process.env.ASSET_BG_IMAGE || join(PROJECT_ROOT, 'assets', 'lin
 const INTRO_VIDEO = process.env.ASSET_INTRO_VIDEO || join(PROJECT_ROOT, 'assets', 'lingopie-intro.mp4')
 
 export async function renderVideo(jobId, mp3Path, correctedSrt, translatedSrt, duration, tmpDir, outputDir) {
-  // Write SRT files
+  // Write SRT files (kept for debugging / future use)
   const langSrtPath = join(tmpDir, `${jobId}-lang.srt`)
   const enSrtPath = join(tmpDir, `${jobId}-en.srt`)
   fs.writeFileSync(langSrtPath, correctedSrt, 'utf8')
   fs.writeFileSync(enSrtPath, translatedSrt, 'utf8')
 
+  // Convert both SRT tracks into a single dual-style ASS file
+  const assPath = join(tmpDir, `${jobId}-subs.ass`)
+  const assContent = buildDualAss(correctedSrt, translatedSrt)
+  fs.writeFileSync(assPath, assContent, 'utf8')
+
   // Step A: BG image + MP3 + subtitles → body.mp4
   const bodyPath = join(tmpDir, `${jobId}-body.mp4`)
-  await renderBody(mp3Path, langSrtPath, enSrtPath, duration, bodyPath)
+  await renderBody(mp3Path, assPath, duration, bodyPath)
 
   // Step B: concat intro + body → final.mp4
   const finalPath = join(outputDir, `${jobId}-final.mp4`)
@@ -31,16 +40,15 @@ export async function renderVideo(jobId, mp3Path, correctedSrt, translatedSrt, d
   return finalPath
 }
 
-function renderBody(mp3Path, langSrtPath, enSrtPath, duration, outputPath) {
+function renderBody(mp3Path, assPath, duration, outputPath) {
   return new Promise((resolve, reject) => {
     ffmpeg()
       .input(BG_IMAGE)
       .inputOptions(['-loop 1'])
       .input(mp3Path)
       .complexFilter([
-        // Two subtitle tracks — both bottom-center aligned, pushed up with MarginV
-        `[0:v]subtitles='${escapeFilterPath(langSrtPath)}':force_style='FontSize=28,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginL=0,MarginR=0,MarginV=480,WrapStyle=0'[v1]`,
-        `[v1]subtitles='${escapeFilterPath(enSrtPath)}':force_style='FontSize=28,PrimaryColour=&H00FFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginL=0,MarginR=0,MarginV=400,WrapStyle=0'[vout]`,
+        // Single ASS file with both Lang + En styles — one render pass
+        `[0:v]ass='${escapeFilterPath(assPath)}'[vout]`,
       ])
       .outputOptions([
         '-map [vout]',
@@ -90,8 +98,7 @@ function concatIntroBody(bodyPath, outputPath) {
 }
 
 function escapeFilterPath(p) {
-  // ffmpeg subtitles filter: convert to forward slashes, single-quote the path,
-  // and escape colons, backslashes, and single quotes within
+  // ffmpeg filter paths: convert to forward slashes and escape colons + single quotes
   return p
     .replace(/\\/g, '/')
     .replace(/:/g, '\\:')
