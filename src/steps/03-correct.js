@@ -25,7 +25,7 @@ Rules:
 - Keep all SRT timestamps from the Whisper output
 - Fix words using the official lyrics where Whisper got them wrong
 - Do NOT add markdown, code fences, or extra text — output ONLY valid SRT
-- Keep line lengths reasonable (max 2 lines per subtitle block)
+- Keep line lengths reasonable (max 38 characters per subtitle block)
 
 --- WHISPER SRT ---
 ${rawSrt}
