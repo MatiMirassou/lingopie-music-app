@@ -34,18 +34,16 @@ function parseSrt(srtContent) {
     )
     if (!timeMatch) continue
 
-    // Join multi-line text with ASS hard line break
-    const text = lines
-      .slice(2)
-      .join('\\N')
-      .trim()
-    if (!text) continue // skip empty blocks
+    // Split multi-line blocks into separate single-line entries
+    const textLines = lines.slice(2).filter(l => l.trim())
+    if (!textLines.length) continue // skip empty blocks
 
-    entries.push({
-      start: srtTimeToAss(timeMatch[1]),
-      end: srtTimeToAss(timeMatch[2]),
-      text,
-    })
+    const start = srtTimeToAss(timeMatch[1])
+    const end = srtTimeToAss(timeMatch[2])
+
+    for (const line of textLines) {
+      entries.push({ start, end, text: line.trim() })
+    }
   }
 
   return entries
@@ -62,8 +60,8 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Lang,Arial,52,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,1,8,10,10,300,1
-Style: En,Arial,52,&H0000FFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,1,8,10,10,480,1
+Style: Lang,Arial,64,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,1,8,10,10,420,1
+Style: En,Arial,64,&H0000FFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,1,8,10,10,640,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

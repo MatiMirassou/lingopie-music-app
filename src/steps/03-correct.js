@@ -3,15 +3,14 @@
  * - Fetches lyrics via lyrics API
  * - AI merges Whisper output + official lyrics → clean SRT
  */
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import axios from 'axios'
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+import { geminiModel } from '../utils/gemini.js'
+import { isValidSrt } from '../utils/srt.js'
 
 export async function correctTranscription(rawSrt, title, language) {
   const lyrics = await fetchLyrics(title)
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' })
+  const model = geminiModel
 
   const prompt = `You are a subtitle correction expert for ${language} music.
 
@@ -25,7 +24,8 @@ Rules:
 - Keep all SRT timestamps from the Whisper output
 - Fix words using the official lyrics where Whisper got them wrong
 - Do NOT add markdown, code fences, or extra text — output ONLY valid SRT
-- Keep line lengths reasonable (max 38 characters per subtitle block)
+- Each subtitle entry must have exactly ONE line of text (no multi-line blocks)
+- If a line is too long, split it into separate sequential subtitle entries with their own timestamps
 
 --- WHISPER SRT ---
 ${rawSrt}
@@ -44,11 +44,6 @@ Output the corrected SRT:`
   }
 
   return correctedSrt
-}
-
-function isValidSrt(text) {
-  // Basic check: SRT must contain at least one timestamp line (00:00:00,000 --> 00:00:00,000)
-  return /\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(text)
 }
 
 async function fetchLyrics(title) {

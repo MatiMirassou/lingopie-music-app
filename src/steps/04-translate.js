@@ -1,12 +1,11 @@
 /**
- * Step 4: Translate corrected SRT to English (Gemini Pro)
+ * Step 4: Translate corrected SRT to English (Gemini Flash)
  */
-import { GoogleGenerativeAI } from '@google/generative-ai'
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+import { geminiModel } from '../utils/gemini.js'
+import { isValidSrt } from '../utils/srt.js'
 
 export async function translateSrt(correctedSrt, language) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' })
+  const model = geminiModel
 
   const prompt = `You are a professional subtitle translator. Translate the following SRT from ${language} to English.
 
@@ -14,6 +13,7 @@ Rules:
 - Keep ALL timestamps exactly as-is
 - Only translate the text lines
 - Keep translations natural and singable where possible
+- Each subtitle entry must have exactly ONE line of text — do not combine lines
 - Do NOT add markdown, code fences, or extra text — output ONLY valid SRT
 
 --- SRT TO TRANSLATE ---
@@ -31,6 +31,3 @@ Output the English SRT:`
   return translatedSrt
 }
 
-function isValidSrt(text) {
-  return /\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(text)
-}
